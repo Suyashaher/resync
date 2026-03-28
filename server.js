@@ -6,6 +6,7 @@ const path = require("path");
 
 const twilioRoutes = require("./routes/twilio");
 const zegocloudRoutes = require("./routes/zegocloud");
+const vitalsRoutes = require("./routes/vitals");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -27,6 +28,7 @@ app.get("/api/health", (_req, res) => {
 // ── Routes ──
 app.use("/api/twilio", twilioRoutes);
 app.use("/api/zegocloud", zegocloudRoutes);
+app.use("/api/vitals", vitalsRoutes);
 
 // ── Public Video Call Page ──
 // Anyone with the link can join — no auth required
