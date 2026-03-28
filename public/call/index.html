@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ReSync — Video Call</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: #0a0b10; color: #e4e4e7;
+      height: 100vh; overflow: hidden;
+    }
+    .top-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 24px;
+      background: rgba(10,11,16,0.9);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    }
+    .logo {
+      font-weight: 700; font-size: 1.1rem;
+      background: linear-gradient(135deg, #6366f1, #06b6d4);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .info { font-size: 0.8rem; color: #71717a; }
+    .info span { color: #a5b4fc; font-weight: 600; }
+    #video-container { width: 100%; height: 100vh; padding-top: 48px; }
+    .loading {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      height: 100vh; gap: 16px;
+    }
+    .spinner {
+      width: 44px; height: 44px;
+      border: 3px solid rgba(99,102,241,0.15);
+      border-top-color: #6366f1; border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { color: #71717a; font-size: 0.9rem; }
+    .error { color: #f87171; text-align: center; padding: 20px; }
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <div class="logo">ReSync</div>
+    <div class="info">Room: <span id="room-display">—</span></div>
+  </div>
+  <div id="video-container">
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <div class="loading-text">Connecting to video call…</div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/@zegocloud/zego-uikit-prebuilt/zego-uikit-prebuilt.js"></script>
+  <script>
+    // ── YOUR ZEGOCLOUD CREDENTIALS ──
+    const APP_ID = 216176839;
+    const SERVER_SECRET = "b0bc92fd1736328b6355ce5d2a2e9325";
+
+    // ── Read roomId from URL path: /call/{roomId} ──
+    const pathParts = window.location.pathname.split("/");
+    const callIndex = pathParts.indexOf("call");
+    const ROOM_ID = callIndex !== -1 ? pathParts[callIndex + 1] : null;
+
+    // ── Read optional name from query string ──
+    const params = new URLSearchParams(window.location.search);
+    const USER_NAME = params.get("name") || "Guest";
+    const USER_ID = params.get("uid") || "user_" + Date.now();
+
+    document.getElementById("room-display").textContent = ROOM_ID || "invalid";
+
+    if (!ROOM_ID) {
+      document.getElementById("video-container").innerHTML =
+        '<div class="loading"><p class="error">Invalid meeting link. No room ID found.</p></div>';
+    } else {
+      startCall();
+    }
+
+    async function startCall() {
+      try {
+        document.getElementById("loading").style.display = "none";
+        const kitToken = ZegoUIKitPrebuilt.generateKitTokenForTest(
+          APP_ID, SERVER_SECRET, ROOM_ID, USER_ID, USER_NAME
+        );
+        const zp = ZegoUIKitPrebuilt.create(kitToken);
+        zp.joinRoom({
+          container: document.getElementById("video-container"),
+          scenario: { mode: ZegoUIKitPrebuilt.OneONoneCall },
+          showScreenSharingButton: true,
+          showPreJoinView: true,
+          turnOnCameraWhenJoining: true,
+          turnOnMicrophoneWhenJoining: true,
+          showLeaveRoomConfirmDialog: true,
+          onLeaveRoom: () => { document.body.innerHTML = '<div class="loading"><p style="color:#a5b4fc;">Call ended. You can close this tab.</p></div>'; },
+        });
+      } catch (err) {
+        document.getElementById("video-container").innerHTML =
+          '<div class="loading"><p class="error">' + err.message + '</p></div>';
+      }
+    }
+  </script>
+</body>
+</html>
